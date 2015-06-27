@@ -1,0 +1,28 @@
+.date, .add {
+	margin: 5px 0;
+}
+tfoot tr td {
+	font-weight: bold;
+}
+tbody tr:hover {
+	background: darkgrey;
+	cursor: default;
+}
+section.edit {
+	width: 500px;
+	color: black;
+	background-color: white;
+	border: 1px solid black;
+	border-radius: 10px;
+	padding: 10px;
+	position: absolute;
+}
+section.edit .close {
+	float: right;
+}
+td.password {
+	cursor: pointer;
+}
+td.password span.password-actual {
+	display: none;
+}
