@@ -37,57 +37,169 @@
 	}
 
 	class PasswordManager {
+		public function get_link () {
+			global $DB_ADDRESS;
+			global $DB_USER;
+			global $DB_PASS;
+			global $DB_NAME;
+
+			return $link = DB_Connect($DB_ADDRESS, $DB_USER, $DB_PASS, $DB_NAME);
+		}
 		public function getAllRecords ($USER_ID) {
+			global $sessionManager;
+			$link = PasswordManager::get_link();
+			$USER_ID = $sessionManager->getUserId();
+
 			$records = array ();
-			$data = mysql_query(<<<EOD
-SELECT *
-FROM `passman`
-WHERE `last_updated` IN (
-	SELECT MAX(`last_updated`)
-	FROM `passman`
-	WHERE `USER_ID` = $USER_ID GROUP BY `PASSMAN_ID`
+			$sql = <<<EOD
+SELECT
+	*
+FROM
+	`passman`
+WHERE
+	`last_updated`
+IN (
+	SELECT
+		MAX(`last_updated`)
+	FROM
+		`passman`
+	WHERE
+		`USER_ID` = $USER_ID
+	GROUP BY
+		`PASSMAN_ID`
 );
-EOD
-			) or die(mysql_error());
+EOD;
+			$data = $link->query($sql);
 
-			while ( ( $row = mysql_fetch_array( $data ) ) != null) {
-				$PASSMAN_ID = $row['PASSMAN_ID'];
-				$USER_ID = $row['USER_ID'];
-				$site = $row['site'];
-				$url = $row['url'];
-				$username = $row['username'];
-				$password = $row['password'];
+			if ($result = $link->query($sql)) {
+				while ( $row = (array) $result->fetch_object() ) {
+					$PASSMAN_ID = $row['PASSMAN_ID'];
+					$USER_ID = $row['USER_ID'];
+					$site = $row['site'];
+					$url = $row['url'];
+					$username = $row['username'];
+					$password = $row['password'];
 
-				$records[] = new PasswordManagerRecord ($PASSMAN_ID, $USER_ID, $site, $url, $username, $password);
+					$records[] = new PasswordManagerRecord ($PASSMAN_ID, $USER_ID, $site, $url, $username, $password);
+				}
 			}
 
 			return $records;
 		}
 
 		public function updateRecord ($PASSMAN_ID, $USER_ID, $site, $url, $username, $password) {
-			$sql  = 'INSERT INTO `sarah`.`passman` (`PASSMAN_ID`, `USER_ID`, `site`, `url`, `username`, `password`)';
-			$sql .= "VALUES ('$PASSMAN_ID', '$USER_ID', '$site',  '$url',  '$username',  '$password');";
+			global $sessionManager;
+			$link = PasswordManager::get_link();
+			$USER_ID = $sessionManager->getUserId();
+
+			$sql  = <<<EOD
+INSERT INTO
+	`sarah`.`passman` (
+		`PASSMAN_ID`,
+		`USER_ID`,
+		`site`,
+		`url`,
+		`username`,
+		`password`
+	) VALUES (
+		'$PASSMAN_ID',
+		'$USER_ID',
+		'$site',
+		'$url',
+		'$username',
+		'$password'
+	);
+EOD;
+
+			$result = $link->query($sql);
 			
-			return mysql_query($sql) or die(mysql_error());
+			return  $result;
 		}
 
 		public function addRecord ($USER_ID, $site, $url, $username, $password) {
-			return mysql_query("INSERT INTO `sarah`.`passman` (`USER_ID`, `site`, `url`, `username`, `password`) VALUES ('$USER_ID', '$site',  '$url',  '$username',  '$password');") or die(mysql_error());
+			global $sessionManager;
+			$link = PasswordManager::get_link();
+			$USER_ID = $sessionManager->getUserId();
+
+			$sql = <<<EOD
+INSERT INTO
+	`sarah`.`passman` (
+		`USER_ID`,
+		`site`,
+		`url`,
+		`username`,
+		`password`
+	) VALUES (
+		'$USER_ID',
+		'$site',
+		'$url',
+		'$username',
+		'$password'
+	);
+EOD;
+
+			$result = $link->query($sql);
+
+			return $result;
 		}
 
 		public function deleteRecord ($PASSMAN_ID, $USER_ID) {
-			return mysql_query("DELETE FROM `sarah`.`passman` WHERE `PASSMAN_ID`='$PASSMAN_ID' AND `USER_ID`='$USER_ID';") or die(mysql_error());
+			global $sessionManager;
+			$link = PasswordManager::get_link();
+			$USER_ID = $sessionManager->getUserId();
+
+			$sql = <<<EOD
+DELETE FROM
+	`sarah`.`passman`
+WHERE
+	`PASSMAN_ID`='$PASSMAN_ID'
+		AND 
+	`USER_ID`='$USER_ID';
+EOD;
+			
+			$result = $link->query($sql);
+
+			return $result;
 		}
 
 		public function getRecord ($PASSMAN_ID, $USER_ID) {
-			$data = mysql_query("SELECT * FROM `passman` WHERE `last_updated` IN (SELECT MAX(`last_updated`) FROM `passman` WHERE `PASSMAN_ID`=$PASSMAN_ID AND `USER_ID` = $USER_ID GROUP BY `PASSMAN_ID`);") or die(mysql_error());
-			$row = mysql_fetch_array( $data );
+			global $sessionManager;
+			$link = PasswordManager::get_link();
+			$USER_ID = $sessionManager->getUserId();
 
-			$site = $row['site'];
-			$url = $row['url'];
-			$username = $row['username'];
-			$password = $row['password'];
+			$sql = <<<EOD
+SELECT
+	*
+FROM
+	`passman`
+WHERE
+	`last_updated`
+IN (
+	SELECT
+		MAX(`last_updated`)
+	FROM
+		`passman`
+	WHERE
+		`PASSMAN_ID`=$PASSMAN_ID
+			AND
+		`USER_ID` = $USER_ID
+	GROUP BY
+		`PASSMAN_ID`
+);
+EOD;
 
-			return new PasswordManagerRecord ($PASSMAN_ID, $USER_ID, $site, $url, $username, $password);
+			if ($result = $link->query($sql)) {
+				$row = (array) $result->fetch_object();
+
+				$site = $row['site'];
+				$url = $row['url'];
+				$username = $row['username'];
+				$password = $row['password'];
+
+				return new PasswordManagerRecord ($PASSMAN_ID, $USER_ID, $site, $url, $username, $password);
+			} else {
+				return NULL;
+			}
+
 		}
 	}
